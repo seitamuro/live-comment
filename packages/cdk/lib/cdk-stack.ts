@@ -16,7 +16,7 @@ export class CdkStack extends cdk.Stack {
     super(scope, id, props);
 
     // 環境変数から環境名を取得
-    const environmentName = process.env.ENVIRONMENT || 'dev';
+    const environmentName = process.env.ENVIRONMENT || 'devvvv';
 
     // DynamoDB Tables
     const roomsTable = new dynamodb.Table(this, 'RoomsTable', {
