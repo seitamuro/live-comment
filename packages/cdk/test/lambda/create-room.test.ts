@@ -1,6 +1,7 @@
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { mockClient } from 'aws-sdk-client-mock';
 import { handler } from '../../lambda/create-room/index';
+const { mockClient } = require('aws-sdk-client-mock');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+
 
 // モックの設定
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -42,8 +43,8 @@ describe('create-room Lambda function', () => {
     expect(putCalls.length).toBe(1);
     const putCall = putCalls[0];
     expect(putCall.args[0].input.TableName).toBe('test-rooms-table');
-    expect(putCall.args[0].input.Item?.name).toBe('テスト部屋');
-    expect(putCall.args[0].input.Item?.hostId).toBe('test-host-123');
+    expect(putCall.args[0].input.Item.name).toBe('テスト部屋');
+    expect(putCall.args[0].input.Item.hostId).toBe('test-host-123');
   });
 
   test('必須フィールドが欠けている場合はエラーを返す', async () => {
