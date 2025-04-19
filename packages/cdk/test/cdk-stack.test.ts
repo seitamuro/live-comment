@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { CdkStack } from '../lib/cdk-stack';
 
 describe('CdkStack', () => {
@@ -11,6 +11,8 @@ describe('CdkStack', () => {
         environment: 'test',
       },
     });
+    process.env.ENVIRONMENT = 'test'; // 環境変数を設定
+
     const stack = new CdkStack(app, 'TestStack');
     template = Template.fromStack(stack);
   });
@@ -59,7 +61,7 @@ describe('CdkStack', () => {
       Environment: {
         Variables: {
           ROOMS_TABLE: {
-            Ref: expect.stringMatching(/RoomsTable/),
+            Ref: Match.stringLikeRegexp('RoomsTable'),
           },
         },
       },
@@ -72,7 +74,7 @@ describe('CdkStack', () => {
       Environment: {
         Variables: {
           COMMENTS_TABLE: {
-            Ref: expect.stringMatching(/CommentsTable/),
+            Ref: Match.stringLikeRegexp('CommentsTable'),
           },
         },
       },
