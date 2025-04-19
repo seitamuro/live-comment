@@ -10,7 +10,7 @@ exports.handler = async (event) => {
     const { roomId } = event.pathParameters;
     const requestBody = JSON.parse(event.body);
     const { hostId } = requestBody;
-    
+
     if (!roomId) {
       return {
         statusCode: 400,
@@ -23,7 +23,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     if (!hostId) {
       return {
         statusCode: 400,
@@ -36,7 +36,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // Get room to verify hostId
     const roomResponse = await ddb.send(
       new GetCommand({
@@ -44,9 +44,9 @@ exports.handler = async (event) => {
         Key: {
           roomId,
         },
-      })
+      }),
     );
-    
+
     if (!roomResponse.Item) {
       return {
         statusCode: 404,
@@ -59,7 +59,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     if (roomResponse.Item.hostId !== hostId) {
       return {
         statusCode: 403,
@@ -72,7 +72,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // Update room status to CLOSED
     const updatedAt = new Date().toISOString();
     await ddb.send(
@@ -90,9 +90,9 @@ exports.handler = async (event) => {
           ':updatedAt': updatedAt,
         },
         ReturnValues: 'ALL_NEW',
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -107,7 +107,7 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Error closing room:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

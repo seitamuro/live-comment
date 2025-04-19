@@ -34,7 +34,7 @@ describe('API Integration Tests', () => {
     expect(response.data).toHaveProperty('name', 'Integration Test Room');
     expect(response.data).toHaveProperty('hostId', hostId);
     expect(response.data).toHaveProperty('status', 'OPEN');
-    
+
     // 後続のテストで使用するためroomIdを保存
     roomId = response.data.roomId;
   });
@@ -57,7 +57,7 @@ describe('API Integration Tests', () => {
     expect(response.data).toHaveProperty('roomId', roomId);
     expect(response.data).toHaveProperty('content', 'This is an integration test comment');
     expect(response.data).toHaveProperty('nickname', 'Integration Tester');
-    
+
     // 後続のテストで使用するためcommentIdを保存
     commentId = response.data.commentId;
   });
@@ -75,13 +75,13 @@ describe('API Integration Tests', () => {
     expect(response.data).toHaveProperty('roomId', roomId);
     expect(response.data).toHaveProperty('comments');
     expect(Array.isArray(response.data.comments)).toBe(true);
-    
+
     // 少なくとも1つのコメントが存在することを確認
     expect(response.data.comments.length).toBeGreaterThan(0);
-    
+
     // 投稿したコメントが含まれていることを確認
     if (commentId) {
-      const comment = response.data.comments.find(c => c.commentId === commentId);
+      const comment = response.data.comments.find((c) => c.commentId === commentId);
       expect(comment).toBeDefined();
       expect(comment.content).toBe('This is an integration test comment');
     }
@@ -93,13 +93,13 @@ describe('API Integration Tests', () => {
     expect(response.status).toBe(200);
     expect(response.data).toHaveProperty('rooms');
     expect(Array.isArray(response.data.rooms)).toBe(true);
-    
+
     // 少なくとも1つの部屋が存在することを確認
     expect(response.data.rooms.length).toBeGreaterThan(0);
-    
+
     // 作成した部屋が含まれていることを確認
     if (roomId) {
-      const room = response.data.rooms.find(r => r.roomId === roomId);
+      const room = response.data.rooms.find((r) => r.roomId === roomId);
       expect(room).toBeDefined();
       expect(room.name).toBe('Integration Test Room');
     }

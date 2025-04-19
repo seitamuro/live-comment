@@ -7,7 +7,7 @@
 Live Comment APIは以下の複数レベルでテストを行います：
 
 1. **ユニットテスト**: 個別のLambda関数のロジックをテスト
-2. **インフラテスト**: CDKが期待通りのリソースを生成するかテスト 
+2. **インフラテスト**: CDKが期待通りのリソースを生成するかテスト
 3. **統合テスト**: デプロイ済みAPIの動作を実際にテスト
 4. **パフォーマンステスト**: API負荷テスト（オプション）
 
@@ -35,16 +35,16 @@ npm run test:lambda
 test('正常に部屋が作成される', async () => {
   // DynamoDBのPutCommandのモックを設定
   ddbMock.on(PutCommand).resolves({});
-  
+
   const event = {
     body: JSON.stringify({
       name: 'テスト部屋',
       hostId: 'test-host-123',
     }),
   };
-  
+
   const result = await handler(event);
-  
+
   expect(result.statusCode).toBe(201);
   // 他の検証...
 });
@@ -66,7 +66,7 @@ npm test
 test('DynamoDBテーブルが正しく作成される', () => {
   // 3つのDynamoDBテーブルが作成されること
   template.resourceCountIs('AWS::DynamoDB::Table', 3);
-  
+
   // テーブルプロパティの検証
   template.hasResourceProperties('AWS::DynamoDB::Table', {
     TableName: 'LiveComment-Rooms-test',
@@ -177,9 +177,9 @@ name: API Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -216,6 +216,7 @@ jobs:
 ### テスト実行時のよくある問題
 
 1. API URLが正しく設定されていない
+
    ```
    エラー: API_URLが設定されていません
    解決: export API_URL=https://your-api-url

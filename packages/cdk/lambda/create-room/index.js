@@ -10,7 +10,7 @@ exports.handler = async (event) => {
     // Parse request body
     const requestBody = JSON.parse(event.body);
     const { name, hostId } = requestBody;
-    
+
     if (!name || !hostId) {
       return {
         statusCode: 400,
@@ -23,13 +23,13 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // Generate unique room ID
     const roomId = uuidv4();
-    
+
     // Current timestamp
     const createdAt = new Date().toISOString();
-    
+
     // Create room item
     const roomItem = {
       roomId,
@@ -39,15 +39,15 @@ exports.handler = async (event) => {
       createdAt,
       updatedAt: createdAt,
     };
-    
+
     // Save to DynamoDB
     await ddb.send(
       new PutCommand({
         TableName: process.env.ROOMS_TABLE,
         Item: roomItem,
-      })
+      }),
     );
-    
+
     // Return success response
     return {
       statusCode: 201,
@@ -65,7 +65,7 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Error creating room:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

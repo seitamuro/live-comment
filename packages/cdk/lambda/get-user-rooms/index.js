@@ -8,7 +8,7 @@ exports.handler = async (event) => {
   try {
     // Get hostId from query parameters
     const hostId = event.queryStringParameters?.hostId;
-    
+
     if (!hostId) {
       return {
         statusCode: 400,
@@ -21,7 +21,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // In a production environment, we would use a GSI (Global Secondary Index) for hostId
     // For simplicity in this example, we'll use a scan operation with a filter
     const response = await ddb.send(
@@ -31,9 +31,9 @@ exports.handler = async (event) => {
         ExpressionAttributeValues: {
           ':hostId': hostId,
         },
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -46,7 +46,7 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Error getting user rooms:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

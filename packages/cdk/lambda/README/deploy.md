@@ -79,6 +79,7 @@ pnpm cdk list-outputs LiveCommentStack-dev
 ```
 
 主な出力項目：
+
 - `ApiUrl`: REST APIのエンドポイント
 - `WebSocketURL`: WebSocket APIのエンドポイント
 - `WebsiteUrl`: フロントエンドのURL

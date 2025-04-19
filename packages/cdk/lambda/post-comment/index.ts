@@ -26,7 +26,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Parse request body
     const requestBody = JSON.parse(event.body || '{}') as PostCommentRequest;
     const { roomId, content, nickname } = requestBody;
-    
+
     if (!roomId || !content) {
       return {
         statusCode: 400,
@@ -39,13 +39,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // Generate unique comment ID
     const commentId = uuidv4();
-    
+
     // Current timestamp
     const createdAt = new Date().toISOString();
-    
+
     // Create comment item
     const commentItem: CommentItem = {
       roomId,
@@ -54,15 +54,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       nickname: nickname || 'Anonymous',
       createdAt,
     };
-    
+
     // Save to DynamoDB
     await ddb.send(
       new PutCommand({
         TableName: process.env.COMMENTS_TABLE!,
         Item: commentItem,
-      })
+      }),
     );
-    
+
     // Publish the comment to connected WebSocket clients for this room
     if (process.env.WEBSOCKET_API_ENDPOINT && process.env.CONNECTIONS_TABLE) {
       try {
@@ -70,7 +70,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const apigwManagementApi = new ApiGatewayManagementApiClient({
           endpoint: process.env.WEBSOCKET_API_ENDPOINT,
         });
-        
+
         // Get all connections for this room
         const connections = await ddb.send(
           new QueryCommand({
@@ -80,38 +80,39 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             ExpressionAttributeValues: {
               ':roomId': roomId,
             },
-          })
+          }),
         );
-        
+
         // Send the comment to all connections
-        const postCalls = connections.Items?.map(async ({ connectionId }) => {
-          try {
-            await apigwManagementApi.send(
-              new PostToConnectionCommand({
-                ConnectionId: connectionId,
-                Data: JSON.stringify(commentItem) as any,
-              })
-            );
-          } catch (e: any) {
-            // Connection no longer exists or is stale, delete it
-            if (e.statusCode === 410) {
-              await ddb.send(
-                new DeleteCommand({
-                  TableName: process.env.CONNECTIONS_TABLE!,
-                  Key: { connectionId },
-                })
+        const postCalls =
+          connections.Items?.map(async ({ connectionId }) => {
+            try {
+              await apigwManagementApi.send(
+                new PostToConnectionCommand({
+                  ConnectionId: connectionId,
+                  Data: JSON.stringify(commentItem) as any,
+                }),
               );
+            } catch (e: any) {
+              // Connection no longer exists or is stale, delete it
+              if (e.statusCode === 410) {
+                await ddb.send(
+                  new DeleteCommand({
+                    TableName: process.env.CONNECTIONS_TABLE!,
+                    Key: { connectionId },
+                  }),
+                );
+              }
             }
-          }
-        }) || [];
-        
+          }) || [];
+
         await Promise.all(postCalls);
       } catch (wsError) {
         console.error('Error sending to WebSocket:', wsError);
         // Continue even if sending to WebSocket fails
       }
     }
-    
+
     return {
       statusCode: 201,
       headers: {
@@ -122,7 +123,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Error posting comment:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

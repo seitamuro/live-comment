@@ -11,7 +11,7 @@ exports.handler = async (event) => {
     // Parse request body
     const requestBody = JSON.parse(event.body);
     const { roomId, content, nickname } = requestBody;
-    
+
     if (!roomId || !content) {
       return {
         statusCode: 400,
@@ -24,13 +24,13 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // Generate unique comment ID
     const commentId = uuidv4();
-    
+
     // Current timestamp
     const createdAt = new Date().toISOString();
-    
+
     // Create comment item
     const commentItem = {
       roomId,
@@ -39,15 +39,15 @@ exports.handler = async (event) => {
       nickname: nickname || 'Anonymous',
       createdAt,
     };
-    
+
     // Save to DynamoDB
     await ddb.send(
       new PutCommand({
         TableName: process.env.COMMENTS_TABLE,
         Item: commentItem,
-      })
+      }),
     );
-    
+
     // Publish the comment to connected WebSocket clients for this room
     if (process.env.WEBSOCKET_API_ENDPOINT && process.env.CONNECTIONS_TABLE) {
       try {
@@ -55,7 +55,7 @@ exports.handler = async (event) => {
         const apigwManagementApi = new ApiGatewayManagementApiClient({
           endpoint: process.env.WEBSOCKET_API_ENDPOINT,
         });
-        
+
         // Get all connections for this room
         const connections = await ddb.send(
           new QueryCommand({
@@ -65,9 +65,9 @@ exports.handler = async (event) => {
             ExpressionAttributeValues: {
               ':roomId': roomId,
             },
-          })
+          }),
         );
-        
+
         // Send the comment to all connections
         const postCalls = connections.Items.map(async ({ connectionId }) => {
           try {
@@ -75,7 +75,7 @@ exports.handler = async (event) => {
               new PostToConnectionCommand({
                 ConnectionId: connectionId,
                 Data: JSON.stringify(commentItem),
-              })
+              }),
             );
           } catch (e) {
             // Connection no longer exists or is stale, delete it
@@ -84,19 +84,19 @@ exports.handler = async (event) => {
                 new DeleteCommand({
                   TableName: process.env.CONNECTIONS_TABLE,
                   Key: { connectionId },
-                })
+                }),
               );
             }
           }
         });
-        
+
         await Promise.all(postCalls);
       } catch (wsError) {
         console.error('Error sending to WebSocket:', wsError);
         // Continue even if sending to WebSocket fails
       }
     }
-    
+
     return {
       statusCode: 201,
       headers: {
@@ -107,7 +107,7 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Error posting comment:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

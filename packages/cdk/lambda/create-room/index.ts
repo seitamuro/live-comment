@@ -25,7 +25,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Parse request body
     const requestBody = JSON.parse(event.body || '{}') as CreateRoomRequest;
     const { name, hostId } = requestBody;
-    
+
     if (!name || !hostId) {
       return {
         statusCode: 400,
@@ -38,13 +38,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // Generate unique room ID
     const roomId = uuidv4();
-    
+
     // Current timestamp
     const createdAt = new Date().toISOString();
-    
+
     // Create room item
     const roomItem: RoomItem = {
       roomId,
@@ -54,15 +54,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       createdAt,
       updatedAt: createdAt,
     };
-    
+
     // Save to DynamoDB
     await ddb.send(
       new PutCommand({
         TableName: process.env.ROOMS_TABLE!,
         Item: roomItem,
-      })
+      }),
     );
-    
+
     // Return success response
     return {
       statusCode: 201,
@@ -80,7 +80,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Error creating room:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

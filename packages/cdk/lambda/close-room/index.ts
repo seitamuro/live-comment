@@ -15,7 +15,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const roomId = event.pathParameters?.roomId;
     const requestBody = JSON.parse(event.body || '{}') as CloseRoomRequest;
     const { hostId } = requestBody;
-    
+
     if (!roomId) {
       return {
         statusCode: 400,
@@ -28,7 +28,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     if (!hostId) {
       return {
         statusCode: 400,
@@ -41,7 +41,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // Get room to verify hostId
     const roomResponse = await ddb.send(
       new GetCommand({
@@ -49,9 +49,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         Key: {
           roomId,
         },
-      })
+      }),
     );
-    
+
     if (!roomResponse.Item) {
       return {
         statusCode: 404,
@@ -64,7 +64,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     if (roomResponse.Item.hostId !== hostId) {
       return {
         statusCode: 403,
@@ -77,7 +77,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // Update room status to CLOSED
     const updatedAt = new Date().toISOString();
     await ddb.send(
@@ -95,9 +95,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           ':updatedAt': updatedAt,
         },
         ReturnValues: 'ALL_NEW',
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -112,7 +112,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Error closing room:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

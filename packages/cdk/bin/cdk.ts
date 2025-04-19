@@ -9,11 +9,11 @@ const environment = process.env.ENVIRONMENT || 'dev';
 
 new CdkStack(app, `LiveCommentStack-${environment}`, {
   /* AWSアカウントとリージョンを設定 */
-  env: { 
-    account: process.env.CDK_DEFAULT_ACCOUNT, 
-    region: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1'
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
   },
-  
+
   /* すべてのリソースに適用するタグ */
   tags: {
     Environment: environment,

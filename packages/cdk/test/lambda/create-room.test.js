@@ -17,7 +17,7 @@ describe('create-room Lambda function', () => {
   test('正常に部屋が作成される', async () => {
     // DynamoDBのPutCommandのモックを設定
     ddbMock.on(PutCommand).resolves({});
-    
+
     // テストデータ
     const event = {
       body: JSON.stringify({
@@ -25,10 +25,10 @@ describe('create-room Lambda function', () => {
         hostId: 'test-host-123',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // レスポンスを検証
     expect(result.statusCode).toBe(201);
     const body = JSON.parse(result.body);
@@ -36,7 +36,7 @@ describe('create-room Lambda function', () => {
     expect(body.hostId).toBe('test-host-123');
     expect(body.roomId).toBeDefined();
     expect(body.status).toBe('OPEN');
-    
+
     // DynamoDBへの書き込みを検証
     const putCalls = ddbMock.commandCalls(PutCommand);
     expect(putCalls.length).toBe(1);
@@ -45,7 +45,7 @@ describe('create-room Lambda function', () => {
     expect(putCall.args[0].input.Item.name).toBe('テスト部屋');
     expect(putCall.args[0].input.Item.hostId).toBe('test-host-123');
   });
-  
+
   test('必須フィールドが欠けている場合はエラーを返す', async () => {
     // テストデータ（nameが欠けている）
     const event = {
@@ -53,20 +53,20 @@ describe('create-room Lambda function', () => {
         hostId: 'test-host-123',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // エラーレスポンスを検証
     expect(result.statusCode).toBe(400);
     const body = JSON.parse(result.body);
     expect(body.message).toContain('Missing required fields');
   });
-  
+
   test('DynamoDB例外が発生した場合はエラーを返す', async () => {
     // DynamoDBのPutCommandが例外をスローするようにモックを設定
     ddbMock.on(PutCommand).rejects(new Error('DB Error'));
-    
+
     // テストデータ
     const event = {
       body: JSON.stringify({
@@ -74,10 +74,10 @@ describe('create-room Lambda function', () => {
         hostId: 'test-host-123',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // エラーレスポンスを検証
     expect(result.statusCode).toBe(500);
     const body = JSON.parse(result.body);

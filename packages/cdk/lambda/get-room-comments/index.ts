@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     // Get roomId from path parameters
     const roomId = event.pathParameters?.roomId;
-    
+
     if (!roomId) {
       return {
         statusCode: 400,
@@ -22,7 +22,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // Query comments for the room
     const response = await ddb.send(
       new QueryCommand({
@@ -32,9 +32,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           ':roomId': roomId,
         },
         ScanIndexForward: true, // Sort by sort key (commentId) in ascending order
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -48,7 +48,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Error getting room comments:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

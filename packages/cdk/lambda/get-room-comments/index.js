@@ -8,7 +8,7 @@ exports.handler = async (event) => {
   try {
     // Get roomId from path parameters
     const { roomId } = event.pathParameters;
-    
+
     if (!roomId) {
       return {
         statusCode: 400,
@@ -21,7 +21,7 @@ exports.handler = async (event) => {
         }),
       };
     }
-    
+
     // Query comments for the room
     const response = await ddb.send(
       new QueryCommand({
@@ -31,9 +31,9 @@ exports.handler = async (event) => {
           ':roomId': roomId,
         },
         ScanIndexForward: true, // Sort by sort key (commentId) in ascending order
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -47,7 +47,7 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     console.error('Error getting room comments:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

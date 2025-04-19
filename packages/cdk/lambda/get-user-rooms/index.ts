@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     // Get hostId from query parameters
     const hostId = event.queryStringParameters?.hostId;
-    
+
     if (!hostId) {
       return {
         statusCode: 400,
@@ -22,7 +22,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }),
       };
     }
-    
+
     // In a production environment, we would use a GSI (Global Secondary Index) for hostId
     // For simplicity in this example, we'll use a scan operation with a filter
     const response = await ddb.send(
@@ -32,9 +32,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         ExpressionAttributeValues: {
           ':hostId': hostId,
         },
-      })
+      }),
     );
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -47,7 +47,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Error getting user rooms:', error);
-    
+
     return {
       statusCode: 500,
       headers: {

@@ -22,12 +22,12 @@ describe('post-comment Lambda function', () => {
   test('正常にコメントが投稿される', async () => {
     // DynamoDBのPutCommandのモックを設定
     ddbMock.on(PutCommand).resolves({});
-    
+
     // WebSocketコネクションがない場合のクエリ結果
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
-    
+
     // テストデータ
     const event = {
       body: JSON.stringify({
@@ -36,10 +36,10 @@ describe('post-comment Lambda function', () => {
         nickname: 'テストユーザー',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // レスポンスを検証
     expect(result.statusCode).toBe(201);
     const body = JSON.parse(result.body);
@@ -47,7 +47,7 @@ describe('post-comment Lambda function', () => {
     expect(body.content).toBe('テストコメントです');
     expect(body.nickname).toBe('テストユーザー');
     expect(body.commentId).toBeDefined();
-    
+
     // DynamoDBへの書き込みを検証
     const putCalls = ddbMock.commandCalls(PutCommand);
     expect(putCalls.length).toBe(1);
@@ -56,22 +56,19 @@ describe('post-comment Lambda function', () => {
     expect(putCall.args[0].input.Item.roomId).toBe('test-room-123');
     expect(putCall.args[0].input.Item.content).toBe('テストコメントです');
   });
-  
+
   test('WebSocketコネクションがある場合、コメントがブロードキャストされる', async () => {
     // DynamoDBのPutCommandのモックを設定
     ddbMock.on(PutCommand).resolves({});
-    
+
     // WebSocketコネクションがある場合のクエリ結果
     ddbMock.on(QueryCommand).resolves({
-      Items: [
-        { connectionId: 'connection-1' },
-        { connectionId: 'connection-2' },
-      ],
+      Items: [{ connectionId: 'connection-1' }, { connectionId: 'connection-2' }],
     });
-    
+
     // WebSocket APIのモックを設定
     apigwMock.on(PostToConnectionCommand).resolves({});
-    
+
     // テストデータ
     const event = {
       body: JSON.stringify({
@@ -80,20 +77,20 @@ describe('post-comment Lambda function', () => {
         nickname: 'テストユーザー',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // レスポンスを検証
     expect(result.statusCode).toBe(201);
-    
+
     // WebSocketへの送信を検証
     const postCalls = apigwMock.commandCalls(PostToConnectionCommand);
     expect(postCalls.length).toBe(2);
     expect(postCalls[0].args[0].input.ConnectionId).toBe('connection-1');
     expect(postCalls[1].args[0].input.ConnectionId).toBe('connection-2');
   });
-  
+
   test('必須フィールドが欠けている場合はエラーを返す', async () => {
     // テストデータ（contentが欠けている）
     const event = {
@@ -102,10 +99,10 @@ describe('post-comment Lambda function', () => {
         nickname: 'テストユーザー',
       }),
     };
-    
+
     // Lambda関数を実行
     const result = await handler(event);
-    
+
     // エラーレスポンスを検証
     expect(result.statusCode).toBe(400);
     const body = JSON.parse(result.body);
