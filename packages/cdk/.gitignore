@@ -1,8 +1,17 @@
-*.js
-!jest.config.js
+# Ignore compiled JavaScript in lib directory
+lib/**/*.js
+lib/**/*.d.ts
+bin/**/*.js
+bin/**/*.d.ts
 *.d.ts
 node_modules
+
+# Except Lambda function code
+!lambda/**/*.js
 
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Jest config
+!jest.config.js
