@@ -4,17 +4,17 @@ import { CdkStack } from '../lib/cdk-stack';
 
 const app = new cdk.App();
 
-// Get environment from context or default to 'dev'
-const environment = app.node.tryGetContext('environment') || 'dev';
+// 環境変数からdeploy環境を取得（デフォルトはdev）
+const environment = process.env.ENVIRONMENT || 'dev';
 
 new CdkStack(app, `LiveCommentStack-${environment}`, {
-  /* Use current AWS account and region by default */
+  /* AWSアカウントとリージョンを設定 */
   env: { 
     account: process.env.CDK_DEFAULT_ACCOUNT, 
     region: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1'
   },
   
-  /* You can specify tags for all resources in the stack */
+  /* すべてのリソースに適用するタグ */
   tags: {
     Environment: environment,
     Project: 'LiveComment',

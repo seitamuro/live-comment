@@ -1,20 +1,21 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
 import { WebSocketApi } from './constructs/websocket-api';
 
 export class CdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Environment name (dev, prod)
-    const environmentName = this.node.tryGetContext('environment') || 'dev';
+    // 環境変数から環境名を取得
+    const environmentName = process.env.ENVIRONMENT || 'dev';
     
     // DynamoDB Tables
     const roomsTable = new dynamodb.Table(this, 'RoomsTable', {
@@ -32,47 +33,47 @@ export class CdkStack extends cdk.Stack {
       removalPolicy: environmentName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
     });
     
-    // Lambda Functions
-    const createRoomFunction = new lambda.Function(this, 'CreateRoomFunction', {
+    // Lambda Functions using NodejsFunction
+    const createRoomFunction = new lambda.NodejsFunction(this, 'CreateRoomFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/create-room'),
+      handler: 'handler',
+      entry: path.join(__dirname, '../lambda/create-room/index.ts'),
       environment: {
         ROOMS_TABLE: roomsTable.tableName,
       },
     });
     
-    const postCommentFunction = new lambda.Function(this, 'PostCommentFunction', {
+    const postCommentFunction = new lambda.NodejsFunction(this, 'PostCommentFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/post-comment'),
+      handler: 'handler',
+      entry: path.join(__dirname, '../lambda/post-comment/index.ts'),
       environment: {
         COMMENTS_TABLE: commentsTable.tableName,
       },
     });
     
-    const getRoomCommentsFunction = new lambda.Function(this, 'GetRoomCommentsFunction', {
+    const getRoomCommentsFunction = new lambda.NodejsFunction(this, 'GetRoomCommentsFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/get-room-comments'),
+      handler: 'handler',
+      entry: path.join(__dirname, '../lambda/get-room-comments/index.ts'),
       environment: {
         COMMENTS_TABLE: commentsTable.tableName,
       },
     });
     
-    const closeRoomFunction = new lambda.Function(this, 'CloseRoomFunction', {
+    const closeRoomFunction = new lambda.NodejsFunction(this, 'CloseRoomFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/close-room'),
+      handler: 'handler',
+      entry: path.join(__dirname, '../lambda/close-room/index.ts'),
       environment: {
         ROOMS_TABLE: roomsTable.tableName,
       },
     });
     
-    const getUserRoomsFunction = new lambda.Function(this, 'GetUserRoomsFunction', {
-      runtime: lambda.Runtime.NODEJS_20_X, 
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/get-user-rooms'),
+    const getUserRoomsFunction = new lambda.NodejsFunction(this, 'GetUserRoomsFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler',
+      entry: path.join(__dirname, '../lambda/get-user-rooms/index.ts'),
       environment: {
         ROOMS_TABLE: roomsTable.tableName,
       },
@@ -115,7 +116,7 @@ export class CdkStack extends cdk.Stack {
     });
     
     // Update post-comment Lambda to notify WebSocket connections
-    postCommentFunction.addEnvironment('WEBSOCKET_API_ENDPOINT', `https://${webSocketApi.webSocketApi.ref}.execute-api.${this.region}.amazonaws.com/${environmentName}`);
+    postCommentFunction.addEnvironment('WEBSOCKET_API_ENDPOINT', `https://${webSocketApi.webSocketApi.apiId}.execute-api.${this.region}.amazonaws.com/${environmentName}`);
     postCommentFunction.addEnvironment('CONNECTIONS_TABLE', webSocketApi.connectionsTable.tableName);
     
     // Grant permissions
@@ -125,7 +126,7 @@ export class CdkStack extends cdk.Stack {
     const apiGatewayManagementPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['execute-api:ManageConnections'],
-      resources: [`arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.webSocketApi.ref}/${webSocketApi.webSocketStage.stageName}/POST/@connections/*`],
+      resources: [`arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.webSocketApi.apiId}/${webSocketApi.webSocketStage.stageName}/POST/@connections/*`],
     });
     postCommentFunction.addToRolePolicy(apiGatewayManagementPolicy);
     

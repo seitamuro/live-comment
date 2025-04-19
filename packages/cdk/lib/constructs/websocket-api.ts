@@ -1,9 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigatewayv2_integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
 
 export interface WebSocketApiProps {
   environmentName: string;
@@ -12,8 +14,8 @@ export interface WebSocketApiProps {
 }
 
 export class WebSocketApi extends Construct {
-  public readonly webSocketApi: apigatewayv2.CfnApi;
-  public readonly webSocketStage: apigatewayv2.CfnStage;
+  public readonly webSocketApi: apigatewayv2.WebSocketApi;
+  public readonly webSocketStage: apigatewayv2.WebSocketStage;
   public readonly connectionsTable: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props: WebSocketApiProps) {
@@ -36,104 +38,25 @@ export class WebSocketApi extends Construct {
     });
     
     // Lambda Functions for WebSocket API
-    const connectFn = new lambda.Function(this, 'ConnectFunction', {
+    const connectFn = new lambda.NodejsFunction(this, 'ConnectFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        exports.handler = async (event) => {
-          console.log('Connect requested for:', event.requestContext.connectionId);
-          return { statusCode: 200 };
-        };
-      `),
+      handler: 'handler',
+      entry: path.join(__dirname, '../../lambda/connect/index.ts'),
     });
     
-    const disconnectFn = new lambda.Function(this, 'DisconnectFunction', {
+    const disconnectFn = new lambda.NodejsFunction(this, 'DisconnectFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
-        
-        const client = new DynamoDBClient({});
-        const ddb = DynamoDBDocumentClient.from(client);
-        
-        exports.handler = async (event) => {
-          const connectionId = event.requestContext.connectionId;
-          
-          try {
-            // Remove the connection from the connections table
-            await ddb.send(new DeleteCommand({
-              TableName: process.env.CONNECTIONS_TABLE,
-              Key: {
-                connectionId,
-              },
-            }));
-            
-            return { statusCode: 200 };
-          } catch (err) {
-            console.error('Error disconnecting:', err);
-            return { statusCode: 500 };
-          }
-        };
-      `),
+      handler: 'handler',
+      entry: path.join(__dirname, '../../lambda/disconnect/index.ts'),
       environment: {
         CONNECTIONS_TABLE: this.connectionsTable.tableName,
       },
     });
     
-    const joinRoomFn = new lambda.Function(this, 'JoinRoomFunction', {
+    const joinRoomFn = new lambda.NodejsFunction(this, 'JoinRoomFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-        const { DynamoDBDocumentClient, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
-        
-        const client = new DynamoDBClient({});
-        const ddb = DynamoDBDocumentClient.from(client);
-        
-        exports.handler = async (event) => {
-          const connectionId = event.requestContext.connectionId;
-          const body = JSON.parse(event.body);
-          const { roomId } = body;
-          
-          if (!roomId) {
-            return {
-              statusCode: 400,
-              body: JSON.stringify({ message: 'roomId is required' }),
-            };
-          }
-          
-          try {
-            // Check if the room exists
-            const roomResponse = await ddb.send(new GetCommand({
-              TableName: process.env.ROOMS_TABLE,
-              Key: { roomId },
-            }));
-            
-            if (!roomResponse.Item) {
-              return {
-                statusCode: 404,
-                body: JSON.stringify({ message: 'Room not found' }),
-              };
-            }
-            
-            // Store the connection with the roomId
-            await ddb.send(new PutCommand({
-              TableName: process.env.CONNECTIONS_TABLE,
-              Item: {
-                connectionId,
-                roomId,
-                timestamp: new Date().toISOString(),
-              },
-            }));
-            
-            return { statusCode: 200 };
-          } catch (err) {
-            console.error('Error joining room:', err);
-            return { statusCode: 500 };
-          }
-        };
-      `),
+      handler: 'handler',
+      entry: path.join(__dirname, '../../lambda/join-room/index.ts'),
       environment: {
         CONNECTIONS_TABLE: this.connectionsTable.tableName,
         ROOMS_TABLE: commentsTable.tableName.replace('Comments', 'Rooms'),
@@ -145,56 +68,25 @@ export class WebSocketApi extends Construct {
     this.connectionsTable.grantReadWriteData(joinRoomFn);
     
     // WebSocket API
-    this.webSocketApi = new apigatewayv2.CfnApi(this, 'WebSocketApi', {
-      name: `live-comment-websocket-${environmentName}`,
-      protocolType: 'WEBSOCKET',
+    this.webSocketApi = new apigatewayv2.WebSocketApi(this, 'WebSocketApi', {
+      apiName: `live-comment-websocket-${environmentName}`,
       routeSelectionExpression: '$request.body.action',
+      connectRouteOptions: {
+        integration: new apigatewayv2_integrations.WebSocketLambdaIntegration('ConnectIntegration', connectFn),
+      },
+      disconnectRouteOptions: {
+        integration: new apigatewayv2_integrations.WebSocketLambdaIntegration('DisconnectIntegration', disconnectFn),
+      },
     });
     
-    // Integrations
-    const connectIntegration = new apigatewayv2.CfnIntegration(this, 'ConnectIntegration', {
-      apiId: this.webSocketApi.ref,
-      integrationType: 'AWS_PROXY',
-      integrationUri: `arn:aws:apigateway:${cdk.Stack.of(this).region}:lambda:path/2015-03-31/functions/${connectFn.functionArn}/invocations`,
+    // Add route for joinRoom
+    this.webSocketApi.addRoute('joinRoom', {
+      integration: new apigatewayv2_integrations.WebSocketLambdaIntegration('JoinRoomIntegration', joinRoomFn),
     });
     
-    const disconnectIntegration = new apigatewayv2.CfnIntegration(this, 'DisconnectIntegration', {
-      apiId: this.webSocketApi.ref,
-      integrationType: 'AWS_PROXY',
-      integrationUri: `arn:aws:apigateway:${cdk.Stack.of(this).region}:lambda:path/2015-03-31/functions/${disconnectFn.functionArn}/invocations`,
-    });
-    
-    const joinRoomIntegration = new apigatewayv2.CfnIntegration(this, 'JoinRoomIntegration', {
-      apiId: this.webSocketApi.ref,
-      integrationType: 'AWS_PROXY',
-      integrationUri: `arn:aws:apigateway:${cdk.Stack.of(this).region}:lambda:path/2015-03-31/functions/${joinRoomFn.functionArn}/invocations`,
-    });
-    
-    // Routes
-    new apigatewayv2.CfnRoute(this, 'ConnectRoute', {
-      apiId: this.webSocketApi.ref,
-      routeKey: '$connect',
-      authorizationType: 'NONE',
-      target: `integrations/${connectIntegration.ref}`,
-    });
-    
-    new apigatewayv2.CfnRoute(this, 'DisconnectRoute', {
-      apiId: this.webSocketApi.ref,
-      routeKey: '$disconnect',
-      authorizationType: 'NONE',
-      target: `integrations/${disconnectIntegration.ref}`,
-    });
-    
-    new apigatewayv2.CfnRoute(this, 'JoinRoomRoute', {
-      apiId: this.webSocketApi.ref,
-      routeKey: 'joinRoom',
-      authorizationType: 'NONE',
-      target: `integrations/${joinRoomIntegration.ref}`,
-    });
-    
-    // Stage
-    this.webSocketStage = new apigatewayv2.CfnStage(this, 'WebSocketStage', {
-      apiId: this.webSocketApi.ref,
+    // Create stage
+    this.webSocketStage = new apigatewayv2.WebSocketStage(this, 'WebSocketStage', {
+      webSocketApi: this.webSocketApi,
       stageName: environmentName,
       autoDeploy: true,
     });
@@ -203,31 +95,15 @@ export class WebSocketApi extends Construct {
     const apiGatewayManagementPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['execute-api:ManageConnections'],
-      resources: [`arn:aws:execute-api:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:${this.webSocketApi.ref}/${this.webSocketStage.stageName}/POST/@connections/*`],
+      resources: [`arn:aws:execute-api:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:${this.webSocketApi.apiId}/${this.webSocketStage.stageName}/POST/@connections/*`],
     });
     
     disconnectFn.addToRolePolicy(apiGatewayManagementPolicy);
     joinRoomFn.addToRolePolicy(apiGatewayManagementPolicy);
     
-    // Allow API Gateway to invoke the Lambda functions
-    connectFn.addPermission('ConnectPermission', {
-      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      sourceArn: `arn:aws:execute-api:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:${this.webSocketApi.ref}/*/$connect`,
-    });
-    
-    disconnectFn.addPermission('DisconnectPermission', {
-      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      sourceArn: `arn:aws:execute-api:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:${this.webSocketApi.ref}/*/$disconnect`,
-    });
-    
-    joinRoomFn.addPermission('JoinRoomPermission', {
-      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      sourceArn: `arn:aws:execute-api:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:${this.webSocketApi.ref}/*/joinRoom`,
-    });
-    
     // Output the WebSocket URL
     new cdk.CfnOutput(this, 'WebSocketURL', {
-      value: `wss://${this.webSocketApi.ref}.execute-api.${cdk.Stack.of(this).region}.amazonaws.com/${environmentName}`,
+      value: `wss://${this.webSocketApi.apiId}.execute-api.${cdk.Stack.of(this).region}.amazonaws.com/${environmentName}`,
       description: 'WebSocket API URL',
     });
   }
