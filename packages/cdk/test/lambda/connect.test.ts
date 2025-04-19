@@ -1,5 +1,5 @@
-import { handler } from '../../lambda/connect/index';
 import { APIGatewayProxyWebsocketEventV2 } from 'aws-lambda';
+import { handler } from '../../lambda/connect/index';
 
 describe('connect Lambda function', () => {
   test('正常に接続が受け入れられる', async () => {
@@ -11,15 +11,15 @@ describe('connect Lambda function', () => {
       requestContext: {
         connectionId: 'test-connection-id-123',
         eventType: 'CONNECT',
-        connectedAt: 1617990000000
-      }
+        connectedAt: 1617990000000,
+      },
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // レスポンスを検証
-    expect(result.statusCode).toBe(200);
+    expect((result as any).statusCode).toBe(200);
 
     // コンソールログの呼び出しを検証
     expect(consoleSpy).toHaveBeenCalledWith('Connect requested for:', 'test-connection-id-123');
@@ -36,15 +36,15 @@ describe('connect Lambda function', () => {
     const event = {
       requestContext: {
         eventType: 'CONNECT',
-        connectedAt: 1617990000000
-      }
+        connectedAt: 1617990000000,
+      },
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // レスポンスを検証
-    expect(result.statusCode).toBe(200);
+    expect((result as any).statusCode).toBe(200);
 
     // コンソールログの呼び出しを検証
     expect(consoleSpy).toHaveBeenCalledWith('Connect requested for:', undefined);

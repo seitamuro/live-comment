@@ -1,7 +1,7 @@
-import { handler } from '../../lambda/get-user-rooms/index';
-import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { mockClient } from 'aws-sdk-client-mock';
+import { handler } from '../../lambda/get-user-rooms/index';
 
 // モックの設定
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -23,27 +23,27 @@ describe('get-user-rooms Lambda function', () => {
         name: 'テスト部屋1',
         hostId: 'test-host-123',
         status: 'OPEN',
-        createdAt: '2025-04-19T12:00:00Z'
+        createdAt: '2025-04-19T12:00:00Z',
       },
       {
         roomId: 'room-2',
         name: 'テスト部屋2',
         hostId: 'test-host-123',
         status: 'CLOSED',
-        createdAt: '2025-04-19T13:00:00Z'
-      }
+        createdAt: '2025-04-19T13:00:00Z',
+      },
     ];
 
     // DynamoDBのScanCommandのモックを設定
     ddbMock.on(ScanCommand).resolves({
-      Items: mockRooms
+      Items: mockRooms,
     });
 
     // テストデータ
     const event = {
       queryStringParameters: {
-        hostId: 'test-host-123'
-      }
+        hostId: 'test-host-123',
+      },
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -60,13 +60,13 @@ describe('get-user-rooms Lambda function', () => {
     const scanCall = scanCalls[0];
     expect(scanCall.args[0].input.TableName).toBe('test-rooms-table');
     expect(scanCall.args[0].input.FilterExpression).toBe('hostId = :hostId');
-    expect(scanCall.args[0].input.ExpressionAttributeValues[':hostId']).toBe('test-host-123');
+    expect(scanCall.args[0]?.input?.ExpressionAttributeValues?.[':hostId']).toBe('test-host-123');
   });
 
   test('hostIdが指定されていない場合はエラーを返す', async () => {
     // テストデータ（hostIdが指定されていない）
     const event = {
-      queryStringParameters: {}
+      queryStringParameters: {},
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -81,7 +81,7 @@ describe('get-user-rooms Lambda function', () => {
   test('queryStringParametersがnullの場合はエラーを返す', async () => {
     // テストデータ（queryStringParametersがnull）
     const event = {
-      queryStringParameters: null
+      queryStringParameters: null,
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -96,14 +96,14 @@ describe('get-user-rooms Lambda function', () => {
   test('ユーザーが部屋を持っていない場合は空リストを返す', async () => {
     // DynamoDBのScanCommandのモックを設定（空のリスト）
     ddbMock.on(ScanCommand).resolves({
-      Items: []
+      Items: [],
     });
 
     // テストデータ
     const event = {
       queryStringParameters: {
-        hostId: 'test-host-123'
-      }
+        hostId: 'test-host-123',
+      },
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -122,8 +122,8 @@ describe('get-user-rooms Lambda function', () => {
     // テストデータ
     const event = {
       queryStringParameters: {
-        hostId: 'test-host-123'
-      }
+        hostId: 'test-host-123',
+      },
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行

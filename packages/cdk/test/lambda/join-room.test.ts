@@ -1,7 +1,7 @@
-import { handler } from '../../lambda/join-room/index';
-import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyWebsocketEventV2 } from 'aws-lambda';
+import { mockClient } from 'aws-sdk-client-mock';
+import { handler } from '../../lambda/join-room/index';
 
 // モックの設定
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -23,8 +23,8 @@ describe('join-room Lambda function', () => {
         roomId: 'test-room-123',
         name: 'テスト部屋',
         hostId: 'test-host-123',
-        status: 'OPEN'
-      }
+        status: 'OPEN',
+      },
     });
 
     // 接続情報を保存するPutCommandのモックを設定
@@ -35,39 +35,39 @@ describe('join-room Lambda function', () => {
       requestContext: {
         connectionId: 'test-connection-id-123',
         eventType: 'MESSAGE',
-        messageId: 'test-message-id-123'
+        messageId: 'test-message-id-123',
       },
       body: JSON.stringify({
         action: 'joinRoom',
-        roomId: 'test-room-123'
-      })
+        roomId: 'test-room-123',
+      }),
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // レスポンスを検証
-    expect(result.statusCode).toBe(200);
+    expect((result as any).statusCode).toBe(200);
 
     // GetCommandの呼び出しを検証
     const getCalls = ddbMock.commandCalls(GetCommand);
     expect(getCalls.length).toBe(1);
     expect(getCalls[0].args[0].input.TableName).toBe('test-rooms-table');
-    expect(getCalls[0].args[0].input.Key.roomId).toBe('test-room-123');
+    expect(getCalls[0]?.args[0]?.input?.Key?.roomId).toBe('test-room-123');
 
     // PutCommandの呼び出しを検証
     const putCalls = ddbMock.commandCalls(PutCommand);
     expect(putCalls.length).toBe(1);
     expect(putCalls[0].args[0].input.TableName).toBe('test-connections-table');
-    expect(putCalls[0].args[0].input.Item.connectionId).toBe('test-connection-id-123');
-    expect(putCalls[0].args[0].input.Item.roomId).toBe('test-room-123');
-    expect(putCalls[0].args[0].input.Item.timestamp).toBeDefined();
+    expect(putCalls[0]?.args[0]?.input?.Item?.connectionId).toBe('test-connection-id-123');
+    expect(putCalls[0]?.args[0]?.input?.Item?.roomId).toBe('test-room-123');
+    expect(putCalls[0]?.args[0]?.input?.Item?.timestamp).toBeDefined();
   });
 
   test('存在しない部屋に参加しようとするとエラーになる', async () => {
     // 部屋が存在しないケース
     ddbMock.on(GetCommand).resolves({
-      Item: null
+      Item: undefined,
     });
 
     // テストデータ
@@ -75,20 +75,20 @@ describe('join-room Lambda function', () => {
       requestContext: {
         connectionId: 'test-connection-id-123',
         eventType: 'MESSAGE',
-        messageId: 'test-message-id-123'
+        messageId: 'test-message-id-123',
       },
       body: JSON.stringify({
         action: 'joinRoom',
-        roomId: 'non-existent-room'
-      })
+        roomId: 'non-existent-room',
+      }),
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // エラーレスポンスを検証
-    expect(result.statusCode).toBe(404);
-    const body = JSON.parse(result.body);
+    expect((result as any).statusCode).toBe(404);
+    const body = JSON.parse((result as any).body);
     expect(body.message).toContain('Room not found');
   });
 
@@ -98,19 +98,19 @@ describe('join-room Lambda function', () => {
       requestContext: {
         connectionId: 'test-connection-id-123',
         eventType: 'MESSAGE',
-        messageId: 'test-message-id-123'
+        messageId: 'test-message-id-123',
       },
       body: JSON.stringify({
-        action: 'joinRoom'
-      })
+        action: 'joinRoom',
+      }),
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // エラーレスポンスを検証
-    expect(result.statusCode).toBe(400);
-    const body = JSON.parse(result.body);
+    expect((result as any).statusCode).toBe(400);
+    const body = JSON.parse((result as any).body);
     expect(body.message).toContain('roomId is required');
   });
 
@@ -126,19 +126,19 @@ describe('join-room Lambda function', () => {
       requestContext: {
         connectionId: 'test-connection-id-123',
         eventType: 'MESSAGE',
-        messageId: 'test-message-id-123'
+        messageId: 'test-message-id-123',
       },
       body: JSON.stringify({
         action: 'joinRoom',
-        roomId: 'test-room-123'
-      })
+        roomId: 'test-room-123',
+      }),
     } as unknown as APIGatewayProxyWebsocketEventV2;
 
     // Lambda関数を実行
     const result = await handler(event);
 
     // エラーレスポンスを検証
-    expect(result.statusCode).toBe(500);
+    expect((result as any).statusCode).toBe(500);
 
     // コンソールエラーの呼び出しを検証
     expect(consoleSpy).toHaveBeenCalledWith('Error joining room:', expect.any(Error));

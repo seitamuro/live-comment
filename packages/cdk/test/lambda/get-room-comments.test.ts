@@ -1,7 +1,7 @@
-import { handler } from '../../lambda/get-room-comments/index';
-import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { mockClient } from 'aws-sdk-client-mock';
+import { handler } from '../../lambda/get-room-comments/index';
 
 // モックの設定
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -23,27 +23,27 @@ describe('get-room-comments Lambda function', () => {
         commentId: 'comment-1',
         content: 'テストコメント1',
         nickname: 'ユーザー1',
-        createdAt: '2025-04-19T12:00:00Z'
+        createdAt: '2025-04-19T12:00:00Z',
       },
       {
         roomId: 'test-room-123',
         commentId: 'comment-2',
         content: 'テストコメント2',
         nickname: 'ユーザー2',
-        createdAt: '2025-04-19T12:01:00Z'
-      }
+        createdAt: '2025-04-19T12:01:00Z',
+      },
     ];
 
     // DynamoDBのQueryCommandのモックを設定
     ddbMock.on(QueryCommand).resolves({
-      Items: mockComments
+      Items: mockComments,
     });
 
     // テストデータ
     const event = {
       pathParameters: {
-        roomId: 'test-room-123'
-      }
+        roomId: 'test-room-123',
+      },
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -61,13 +61,13 @@ describe('get-room-comments Lambda function', () => {
     const queryCall = queryCalls[0];
     expect(queryCall.args[0].input.TableName).toBe('test-comments-table');
     expect(queryCall.args[0].input.KeyConditionExpression).toBe('roomId = :roomId');
-    expect(queryCall.args[0].input.ExpressionAttributeValues[':roomId']).toBe('test-room-123');
+    expect(queryCall.args[0]?.input?.ExpressionAttributeValues?.[':roomId']).toBe('test-room-123');
   });
 
   test('roomIdが指定されていない場合はエラーを返す', async () => {
     // テストデータ（roomIdが指定されていない）
     const event = {
-      pathParameters: {}
+      pathParameters: {},
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行
@@ -86,8 +86,8 @@ describe('get-room-comments Lambda function', () => {
     // テストデータ
     const event = {
       pathParameters: {
-        roomId: 'test-room-123'
-      }
+        roomId: 'test-room-123',
+      },
     } as unknown as APIGatewayProxyEvent;
 
     // Lambda関数を実行

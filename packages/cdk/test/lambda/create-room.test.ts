@@ -1,4 +1,4 @@
-const { handler } = require('../../lambda/create-room/index');
+import { handler } from '../../lambda/create-room/index';
 const { mockClient } = require('aws-sdk-client-mock');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
@@ -27,7 +27,7 @@ describe('create-room Lambda function', () => {
     };
 
     // Lambda関数を実行
-    const result = await handler(event);
+    const result = await handler(event as any);
 
     // レスポンスを検証
     expect(result.statusCode).toBe(201);
@@ -55,7 +55,7 @@ describe('create-room Lambda function', () => {
     };
 
     // Lambda関数を実行
-    const result = await handler(event);
+    const result = await handler(event as any);
 
     // エラーレスポンスを検証
     expect(result.statusCode).toBe(400);
@@ -76,7 +76,7 @@ describe('create-room Lambda function', () => {
     };
 
     // Lambda関数を実行
-    const result = await handler(event);
+    const result = await handler(event as any);
 
     // エラーレスポンスを検証
     expect(result.statusCode).toBe(500);
