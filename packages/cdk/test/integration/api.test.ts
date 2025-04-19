@@ -14,9 +14,9 @@ beforeAll(() => {
 
 describe('API Integration Tests', () => {
   // テストで使用する変数
-  let roomId;
-  let hostId;
-  let commentId;
+  let roomId: any;
+  let hostId: any;
+  let commentId: any;
 
   // 各テスト前に実行
   beforeAll(() => {
@@ -81,7 +81,7 @@ describe('API Integration Tests', () => {
 
     // 投稿したコメントが含まれていることを確認
     if (commentId) {
-      const comment = response.data.comments.find((c) => c.commentId === commentId);
+      const comment = response.data.comments.find((c: any) => c.commentId === commentId);
       expect(comment).toBeDefined();
       expect(comment.content).toBe('This is an integration test comment');
     }
@@ -99,7 +99,7 @@ describe('API Integration Tests', () => {
 
     // 作成した部屋が含まれていることを確認
     if (roomId) {
-      const room = response.data.rooms.find((r) => r.roomId === roomId);
+      const room = response.data.rooms.find((r: any) => r.roomId === roomId);
       expect(room).toBeDefined();
       expect(room.name).toBe('Integration Test Room');
     }
