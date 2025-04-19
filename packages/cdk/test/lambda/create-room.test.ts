@@ -2,6 +2,7 @@ import { handler } from '../../lambda/create-room/index';
 const { mockClient } = require('aws-sdk-client-mock');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
+
 // モックの設定
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
