@@ -2,6 +2,54 @@
 
 このドキュメントでは、Live Comment APIのテスト戦略と実行方法について説明します。
 
+## CDK Tests
+
+### テストカテゴリ
+
+CDKパッケージには以下のカテゴリのテストが含まれています：
+
+1. **Lambdaテスト** (`packages/cdk/test/lambda/*.test.ts`):
+   - Lambda関数のユニットテスト
+   - モック化された依存関係を使用して個々の関数を分離してテスト
+   - ビジネスロジックの正確性に焦点
+
+2. **スタックテスト** (`packages/cdk/test/cdk-stack.test.ts`, `packages/cdk/test/cdk.test.ts`):
+   - CDKインフラストラクチャコンストラクトのテスト
+   - CloudFormationテンプレートが正しく生成されることを検証
+   - 期待されるリソースとそのプロパティをチェック
+
+3. **統合テスト** (`packages/cdk/test/integration/*.test.ts`):
+   - APIエンドポイントやサービス間の相互作用のテスト
+   - エンドツーエンドの機能を検証
+   - 設定によっては実際のAWSリソースが必要になる場合あり
+
+### テストの実行
+
+テストは以下のnpmスクリプトを使用して実行できます：
+
+```bash
+# すべてのテストを実行
+pnpm --filter cdk test
+
+# Lambdaテストのみ実行
+pnpm --filter cdk test:lambda
+
+# 統合テストのみ実行
+pnpm --filter cdk test:integration
+
+# 特定のテストファイルを実行
+pnpm --filter cdk jest test/path/to/test-file.test.ts
+```
+
+### 継続的インテグレーション
+
+テストはGitHub Actionsで自動的に実行されます：
+- mainブランチへのプッシュ時（CDKファイルが変更された場合）
+- mainブランチへのプルリクエスト時（CDKファイルが変更された場合）
+- workflow dispatchを通じた手動実行
+
+ワークフローの設定については `.github/workflows/cdk-tests.yml` を参照してください。
+
 ## 基本方針
 
 - テストツールにはjestを利用
